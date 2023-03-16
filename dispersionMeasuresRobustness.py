@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 
 distribution = str(input('Choose the probability distribution from Normal, Skewnorm, Gennormal, Beta, Levy, Lognormal or t: '))
 
+if distribution not in ('Normal', 'Skewnorm', 'Gennormal', 'Beta', 'Levy', 'Lognormal', 't'):
+    raise Exception('We could not find the distribution, please use one of the options given')
+
 # Define required input parameters
 def inputParams(distribution):
     global location, scale, skew, kurtosis, alpha, beta, mu, sigma, df
@@ -78,13 +81,13 @@ def inputParams(distribution):
         return mu, sigma, scale
     
     elif distribution == 't':
-        df = float(input('Degrees of freedom(nu): '))
-        location = float(input('Location paramter: '))
+        df = float(input('Degrees of freedom parameter(nu): '))
+        location = float(input('Location parameter: '))
         scale = float(input('Scale parameter: '))
         if not (isinstance(df, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
             raise Exception('Please use real numbers as inputs')
         if df < 0:
-            raise Exception('t distribution is not defined for df < 0')
+            raise Exception('Lognormal distribution is not defined for sigma < 0')
         return df, location, scale
 
 inputParams(distribution)
@@ -93,9 +96,8 @@ tuningSamples = int(input('Number of samples to determine dispersion measures: '
 randomSamples = int(input('Number of samples to evaluate disperison measures: '))
 sampleSize = int(input('Size of the random samples: '))
 
-# Function that calculates population variance and standard deviation, and estimates percentile 90 - percentile 10 range, mean
-# absolute deviation, median absolute deviation and inter quartile range
-def ParamGen(distr, tuningSamples):
+# Function that calculates and estimates dispersion measures, it finally creates the samples
+def Generator(distr, tuningSamples, randomSamples, sampleSize):
 
     if distr == 'Normal':
 
@@ -109,6 +111,8 @@ def ParamGen(distr, tuningSamples):
         medianabsdevs = np.median([np.absolute(mean - i) for i in sample])
         iqr = sp.stats.iqr(sample)
 
+        samples = sp.stats.norm.rvs(loc=location, scale=scale, size=(randomSamples,sampleSize))
+
     elif distr == 'Skewnorm':
 
         sample = sp.stats.skewnorm.rvs(a=skew, loc=location, scale=scale, size=tuningSamples)
@@ -120,6 +124,8 @@ def ParamGen(distr, tuningSamples):
         meanabsdevs = np.mean([np.absolute(mean - i) for i in sample])
         medianabsdevs = np.median([np.absolute(mean - i) for i in sample])
         iqr = sp.stats.iqr(sample)
+
+        samples = sp.stats.skewnorm.rvs(a=skew, loc=location, scale=scale, size=(randomSamples,sampleSize))
 
     elif distr == 'Gennormal':
 
@@ -133,6 +139,8 @@ def ParamGen(distr, tuningSamples):
         medianabsdevs = np.median([np.absolute(mean - i) for i in sample])
         iqr = sp.stats.iqr(sample)
 
+        samples = sp.stats.gennorm.rvs(beta=kurtosis, loc=location, scale=scale, size=(randomSamples,sampleSize))
+
     elif distr == 'Beta':
 
         sample = sp.stats.beta.rvs(a=alpha, b=beta, loc=location, scale=scale, size=tuningSamples)
@@ -144,6 +152,8 @@ def ParamGen(distr, tuningSamples):
         meanabsdevs = np.mean([np.absolute(mean - i) for i in sample])
         medianabsdevs = np.median([np.absolute(mean - i) for i in sample])
         iqr = sp.stats.iqr(sample)
+
+        samples = sp.stats.beta.rvs(a=alpha, b=beta, loc=location, scale=scale, size=(randomSamples,sampleSize))
 
     elif distr == 'Gamma':
 
@@ -157,6 +167,8 @@ def ParamGen(distr, tuningSamples):
         medianabsdevs = np.median([np.absolute(mean - i) for i in sample])
         iqr = sp.stats.iqr(sample)
 
+        samples = sp.stats.gamma.rvs(a=alpha, loc=location, scale=scale, size=(randomSamples,sampleSize))
+
     elif distr == 'Levy':
 
         sample = sp.stats.levy.rvs(loc=location, scale=scale, size=tuningSamples)
@@ -168,6 +180,8 @@ def ParamGen(distr, tuningSamples):
         meanabsdevs = np.mean([np.absolute(mean - i) for i in sample])
         medianabsdevs = np.median([np.absolute(mean - i) for i in sample])
         iqr = sp.stats.iqr(sample)
+
+        samples = sp.stats.levy.rvs(loc=location, scale=scale, size=(randomSamples,sampleSize))
 
     elif distr == 'Lognormal':
 
@@ -181,6 +195,8 @@ def ParamGen(distr, tuningSamples):
         medianabsdevs = np.median([np.absolute(mean - i) for i in sample])
         iqr = sp.stats.iqr(sample)
 
+        samples = sp.stats.lognorm.rvs(s=sigma, loc=mu, scale=scale, size=(randomSamples,sampleSize))
+
     elif distr == 't':
          
         sample = sp.stats.t.rvs(df=df, loc=location, scale=scale, size=tuningSamples)
@@ -191,37 +207,14 @@ def ParamGen(distr, tuningSamples):
         p90p10range = np.percentile(sample, 90) - np.percentile(sample, 10)
         meanabsdevs = np.mean([np.absolute(mean - i) for i in sample])
         medianabsdevs = np.median([np.absolute(mean - i) for i in sample])
-        iqr = sp.stats.iqr(sample)       
+        iqr = sp.stats.iqr(sample) 
 
-    else: 
-        print('We could not find the distribution, please use one of the options given')
+        samples = sp.stats.t.rvs(df=df, loc=location, scale=scale, size=(randomSamples,sampleSize))      
 
-    return var, std, p90p10range, meanabsdevs, medianabsdevs, iqr
+    return var, std, p90p10range, meanabsdevs, medianabsdevs, iqr, samples
 
 # Store dispersion measures in variables
-var, std, p90p10range, meanabsdevs, medianabsdevs, iqr = ParamGen(distr=distribution, tuningSamples=tuningSamples)
-
-# Generate random samples
-def RandomSamples(distribution):
-    if distribution == 'Normal':
-        samples = sp.stats.norm.rvs(loc=location, scale=scale, size=(randomSamples,sampleSize))
-    elif distribution == 'Skewnorm':
-        samples = sp.stats.skewnorm.rvs(a=skew, loc=location, scale=scale, size=(randomSamples,sampleSize))
-    elif distribution == 'Gennormal':
-        samples = sp.stats.gennorm.rvs(beta=kurtosis, loc=location, scale=scale, size=(randomSamples,sampleSize))
-    elif distribution == 'Beta':
-        samples = sp.stats.beta.rvs(a=alpha, b=beta, loc=location, scale=scale, size=(randomSamples,sampleSize))
-    elif distribution == 'Gamma':
-        samples = sp.stats.gamma.rvs(a=alpha, loc=location, scale=scale, size=(randomSamples,sampleSize))
-    elif distribution == 'Levy':
-        samples = sp.stats.levy.rvs(loc=location, scale=scale, size=(randomSamples,sampleSize))
-    elif distribution == 'Lognormal':
-        samples = sp.stats.lognorm.rvs(s=sigma, loc=mu, scale=scale, size=(randomSamples,sampleSize))
-    elif distribution == 't':
-        samples = sp.stats.t.rvs(df=df, loc=location, scale=scale, size=(randomSamples,sampleSize))
-    return samples
-
-samples = RandomSamples(distribution)
+var, std, p90p10range, meanabsdevs, medianabsdevs, iqr, samples = Generator(distr=distribution, tuningSamples=tuningSamples, randomSamples=randomSamples, sampleSize=sampleSize)
 
 # Prepare absolute deviations to compute mean absolute deviations
 means = np.mean(samples, axis=1)
@@ -230,12 +223,21 @@ absdevs = [np.absolute(x - means) for x, means in zip(samples, means)]
 # Compute the proportion between the real and observed value
 # For readability: In every variable np.divide takes as argument a np.array that contains the given dispersion method
 # for every sample generated
-StDv = np.divide(np.std(samples, axis=1), std)
-Variance = np.divide(np.var(samples, axis=1), var)
-IQRS = np.divide(sp.stats.iqr(samples, axis=1), iqr)
-MedianAbsDevs = np.divide(sp.stats.median_abs_deviation(samples, axis=1), medianabsdevs)
-P90P10Range = np.divide([x - y for x, y in zip(np.percentile(samples, 90, axis =1), np.percentile(samples, 10, axis = 1))], p90p10range)
-MeanAbsDevs = np.divide(np.mean(absdevs, axis=1), meanabsdevs)
+def results(samples, var, std, p90p10range, meanabsdevs, medianabsdevs, iqr):
+    
+    StDv = np.divide(np.std(samples, axis=1), std)
+    Variance = np.divide(np.var(samples, axis=1), var)
+    IQRS = np.divide(sp.stats.iqr(samples, axis=1), iqr)
+    MedianAbsDevs = np.divide(sp.stats.median_abs_deviation(samples, axis=1), medianabsdevs)
+    P90P10Range = np.divide([x - y for x, y in zip(np.percentile(samples, 90, axis =1), np.percentile(samples, 10, axis = 1))], p90p10range)
+    MeanAbsDevs = np.divide(np.mean(absdevs, axis=1), meanabsdevs)
+
+    return StDv, Variance, IQRS, MedianAbsDevs, P90P10Range, MeanAbsDevs
+
+StDv, Variance, IQRS, MedianAbsDevs, P90P10Range, MeanAbsDevs = results(samples, var, std, p90p10range, meanabsdevs, medianabsdevs, iqr)
+
+# Delete variables that are not going to be used again 
+del means, absdevs, samples
 
 # Return the 97.5, 75, 50, 25 and 2.5th percentiles for every dispersion measure
 print('Percentiles of Standard deviation: ' + str(np.percentile(StDv, [97.5, 75, 50, 25, 2.5])))
@@ -255,6 +257,9 @@ for result in results:
 data = [StDv, Variance, IQRS, MedianAbsDevs, P90P10Range, MeanAbsDevs]
 labels = ['Standard Deviation', 'Variance', 'IQ Range', 'Median Abs Devs', 'P90-10 Range', 'Mean Abs Devs']
 
+# Delete variables that are not going to be used again 
+del StDv, Variance, IQRS, MedianAbsDevs, P90P10Range, MeanAbsDevs
+
 # Sort the list of datasets and labels based on their standard deviations
 data_labels = sorted(zip(data, labels), key=lambda x: np.std(x[0]))
 data, labels = zip(*data_labels)
@@ -264,3 +269,6 @@ fig, ax = plt.subplots(figsize=(15, 5))
 ax.boxplot(data, labels=labels)
 ax.set_xticklabels(labels)
 plt.show()
+
+# Delete variables that are not going to be used again 
+del data, labels, data_labels, fig, ax
