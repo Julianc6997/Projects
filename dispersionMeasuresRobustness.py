@@ -7,99 +7,21 @@ distribution = str(input('Choose the probability distribution from Normal, Skewn
 if distribution not in ('Normal', 'Skewnorm', 'Gennormal', 'Beta', 'Levy', 'Lognormal', 't'):
     raise Exception('We could not find the distribution, please use one of the options given')
 
-# Define required input parameters
-def inputParams(distribution):
-    global location, scale, skew, kurtosis, alpha, beta, mu, sigma, df
-    if distribution == 'Normal':
+tuningSamples = int(input('Number of samples to determine dispersion measures: '))
+randomSamples = int(input('Number of samples to evaluate disperison measures: '))
+sampleSize = int(input('Size of the random samples: '))
+
+# Function that defines required input parameter, calculates and estimates dispersion measures, it finally creates the samples
+def Generator(distr, tuningSamples, randomSamples, sampleSize):
+
+    if distr == 'Normal':
+
         location = float(input('Location parameter(mu): '))
         scale = float(input('Scale parameter(sigma): '))
         if not (isinstance(location, (float, int)) and isinstance(scale, (float, int))):
             raise Exception('Please use real numbers as inputs')
         if scale < 0:
             raise Exception('Normal distribution is not defined for scale < 0')
-    
-    elif distribution == 'Skewnorm':
-        skew = float(input('Skew parameter(a): '))
-        location = float(input('Location parameter(xi): '))
-        scale = float(input('Scale parameter(omega): '))
-        if not (isinstance(skew, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
-            raise Exception('Please use real numbers as imputs')
-        if scale < 0:
-            raise Exception('Skew normal distribution is not defined for scale < 0')
-        return skew, location, scale
-    
-    elif distribution == 'Gennormal':
-        kurtosis = float(input('Kurtosis parameter(beta): '))
-        location = float(input('Location parameter(a): '))
-        scale = float(input('Scale parameter(mu): '))
-        if not (isinstance(kurtosis, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
-            raise Exception('Please use real numbers as inputs')
-        if kurtosis < 0:
-            raise Exception('Generalized normal distribution is not defined for kurtosis < 0')
-        if scale < 0:
-            raise Exception('Generalized normal distribution is not defined for scale < 0')
-        return kurtosis, location, scale
-    
-    elif distribution == 'Beta':
-        alpha = float(input('Shape parameter(alpha): '))
-        beta = float(input('Inverse scale(beta): '))
-        location = float(input('Location parameter: '))
-        scale = float(input('Scale parameter: '))
-        if not (isinstance(alpha, (float, int)) and isinstance(beta, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
-            raise Exception('Please use real numbers as inputs')
-        if (alpha or beta) < 0:
-            raise Exception('Beta distribution is not defined for alpha or beta < 0')
-        return alpha, beta, location, scale
-    
-    elif distribution == 'Gamma':
-        alpha = float(input('Alpha parameter: '))
-        location = float(input('Location paramter: '))
-        scale = float(input('Scale parameter: '))
-        if not (isinstance(alpha, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
-            raise Exception('Please use real numbers as inputs')
-        if alpha < 0:
-            raise Exception('Gamma distribution is no defined for alpha < 0')
-        return alpha, location, scale
-                      
-    elif distribution == 'Levy':
-        location = float(input('Location parameter(mu): '))
-        scale = float(input('Scale parameter(c): '))
-        if not (isinstance(location, (float, int)) and isinstance(scale, (float, int))):
-            raise Exception('Please use real numbers as inputs')
-        if scale < 0:
-            raise Exception('Levy distribution is not defined for c < 0')
-        return location, scale
-    
-    elif distribution == 'Lognormal':
-        mu = float(input('Location parameter(mu): '))
-        sigma = float(input('Scale, skew and kurtosis parameter(sigma): '))
-        scale = float(input('Scale parameter: '))
-        if not (isinstance(mu, (float, int)) and isinstance(sigma, (float, int)) and isinstance(scale, (float, int))):
-            raise Exception('Please use real numbers as inputs')
-        if sigma < 0:
-            raise Exception('Lognormal distribution is not defined for sigma < 0')
-        return mu, sigma, scale
-    
-    elif distribution == 't':
-        df = float(input('Degrees of freedom parameter(nu): '))
-        location = float(input('Location parameter: '))
-        scale = float(input('Scale parameter: '))
-        if not (isinstance(df, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
-            raise Exception('Please use real numbers as inputs')
-        if df < 0:
-            raise Exception('Lognormal distribution is not defined for sigma < 0')
-        return df, location, scale
-
-inputParams(distribution)
-
-tuningSamples = int(input('Number of samples to determine dispersion measures: '))
-randomSamples = int(input('Number of samples to evaluate disperison measures: '))
-sampleSize = int(input('Size of the random samples: '))
-
-# Function that calculates and estimates dispersion measures, it finally creates the samples
-def Generator(distr, tuningSamples, randomSamples, sampleSize):
-
-    if distr == 'Normal':
 
         sample = sp.stats.norm.rvs(loc=location, scale=scale, size=tuningSamples)
         mean = sp.stats.norm.mean(loc=location, scale=scale)
@@ -112,9 +34,18 @@ def Generator(distr, tuningSamples, randomSamples, sampleSize):
         iqr = sp.stats.iqr(sample)
 
         samples = sp.stats.norm.rvs(loc=location, scale=scale, size=(randomSamples,sampleSize))
+        del location, scale, randomSamples, sampleSize
 
     elif distr == 'Skewnorm':
 
+        skew = float(input('Skew parameter(a): '))
+        location = float(input('Location parameter(xi): '))
+        scale = float(input('Scale parameter(omega): '))
+        if not (isinstance(skew, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
+            raise Exception('Please use real numbers as imputs')
+        if scale < 0:
+            raise Exception('Skew normal distribution is not defined for scale < 0')
+        
         sample = sp.stats.skewnorm.rvs(a=skew, loc=location, scale=scale, size=tuningSamples)
         mean = sp.stats.skewnorm.mean(a=skew, loc=location, scale=scale)
 
@@ -126,8 +57,19 @@ def Generator(distr, tuningSamples, randomSamples, sampleSize):
         iqr = sp.stats.iqr(sample)
 
         samples = sp.stats.skewnorm.rvs(a=skew, loc=location, scale=scale, size=(randomSamples,sampleSize))
+        del skew, location, scale, randomSamples, sampleSize
 
     elif distr == 'Gennormal':
+        
+        kurtosis = input('Kurtosis parameter(beta): ')
+        location = input('Location parameter(a): ')
+        scale = input('Scale parameter(mu): ')
+        if not (isinstance(kurtosis, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
+            raise Exception('Please use real numbers as inputs')
+        if kurtosis < 0:
+            raise Exception('Generalized normal distribution is not defined for kurtosis < 0')
+        if scale < 0:
+            raise Exception('Generalized normal distribution is not defined for scale < 0')
 
         sample = sp.stats.gennorm.rvs(beta=kurtosis, loc=location, scale=scale, size=tuningSamples)
         mean = sp.stats.gennorm.mean(beta=kurtosis, loc=location, scale=scale)
@@ -140,9 +82,18 @@ def Generator(distr, tuningSamples, randomSamples, sampleSize):
         iqr = sp.stats.iqr(sample)
 
         samples = sp.stats.gennorm.rvs(beta=kurtosis, loc=location, scale=scale, size=(randomSamples,sampleSize))
+        del kurtosis, location, scale, randomSamples, sampleSize
 
     elif distr == 'Beta':
 
+        alpha = float(input('Shape parameter(alpha): '))
+        beta = float(input('Inverse scale(beta): '))
+        location = float(input('Location parameter: '))
+        scale = float(input('Scale parameter: '))
+        if not (isinstance(alpha, (float, int)) and isinstance(beta, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
+            raise Exception('Please use real numbers as inputs')
+        if (alpha or beta) < 0:
+            raise Exception('Beta distribution is not defined for alpha or beta < 0')
         sample = sp.stats.beta.rvs(a=alpha, b=beta, loc=location, scale=scale, size=tuningSamples)
         mean = sp.stats.beta.mean(a=alpha, b=beta, loc=location, scale=scale)
 
@@ -154,9 +105,17 @@ def Generator(distr, tuningSamples, randomSamples, sampleSize):
         iqr = sp.stats.iqr(sample)
 
         samples = sp.stats.beta.rvs(a=alpha, b=beta, loc=location, scale=scale, size=(randomSamples,sampleSize))
+        del alpha, beta, location, scale, randomSamples, sampleSize
 
     elif distr == 'Gamma':
 
+        alpha = float(input('Alpha parameter: '))
+        location = float(input('Location paramter: '))
+        scale = float(input('Scale parameter: '))
+        if not (isinstance(alpha, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
+            raise Exception('Please use real numbers as inputs')
+        if alpha < 0:
+            raise Exception('Gamma distribution is no defined for alpha < 0')
         sample = sp.stats.gamma.rvs(a=alpha, loc=location, scale=scale, size=tuningSamples)
         mean = sp.stats.gamma.mean(a=alpha, loc=location, scale=scale)
 
@@ -168,9 +127,16 @@ def Generator(distr, tuningSamples, randomSamples, sampleSize):
         iqr = sp.stats.iqr(sample)
 
         samples = sp.stats.gamma.rvs(a=alpha, loc=location, scale=scale, size=(randomSamples,sampleSize))
+        del alpha, location, scale, randomSamples, sampleSize
 
     elif distr == 'Levy':
 
+        location = float(input('Location parameter(mu): '))
+        scale = float(input('Scale parameter(c): '))
+        if not (isinstance(location, (float, int)) and isinstance(scale, (float, int))):
+            raise Exception('Please use real numbers as inputs')
+        if scale < 0:
+            raise Exception('Levy distribution is not defined for c < 0')
         sample = sp.stats.levy.rvs(loc=location, scale=scale, size=tuningSamples)
         mean = sp.stats.levy.mean(loc=location, scale=scale)
 
@@ -182,9 +148,18 @@ def Generator(distr, tuningSamples, randomSamples, sampleSize):
         iqr = sp.stats.iqr(sample)
 
         samples = sp.stats.levy.rvs(loc=location, scale=scale, size=(randomSamples,sampleSize))
+        del location, scale, randomSamples, sampleSize
 
     elif distr == 'Lognormal':
 
+        mu = float(input('Location parameter(mu): '))
+        sigma = float(input('Scale, skew and kurtosis parameter(sigma): '))
+        scale = float(input('Scale parameter: '))
+        if not (isinstance(mu, (float, int)) and isinstance(sigma, (float, int)) and isinstance(scale, (float, int))):
+            raise Exception('Please use real numbers as inputs')
+        if sigma < 0:
+            raise Exception('Lognormal distribution is not defined for sigma < 0')
+        
         sample = sp.stats.lognorm.rvs(s=sigma, loc=mu, scale=scale, size=tuningSamples)
         mean = sp.stats.lognorm.mean(s=sigma, loc=mu, scale=scale)
 
@@ -196,9 +171,17 @@ def Generator(distr, tuningSamples, randomSamples, sampleSize):
         iqr = sp.stats.iqr(sample)
 
         samples = sp.stats.lognorm.rvs(s=sigma, loc=mu, scale=scale, size=(randomSamples,sampleSize))
+        del mu, sigma, scale, randomSamples, sampleSize
 
     elif distr == 't':
-         
+        
+        df = float(input('Degrees of freedom parameter(nu): '))
+        location = float(input('Location parameter: '))
+        scale = float(input('Scale parameter: '))
+        if not (isinstance(df, (float, int)) and isinstance(location, (float, int)) and isinstance(scale, (float, int))):
+            raise Exception('Please use real numbers as inputs')
+        if df < 0:
+            raise Exception('Lognormal distribution is not defined for sigma < 0')
         sample = sp.stats.t.rvs(df=df, loc=location, scale=scale, size=tuningSamples)
         mean = sp.stats.t.mean(df=df, loc=location, scale=scale)
 
@@ -209,7 +192,8 @@ def Generator(distr, tuningSamples, randomSamples, sampleSize):
         medianabsdevs = np.median([np.absolute(mean - i) for i in sample])
         iqr = sp.stats.iqr(sample) 
 
-        samples = sp.stats.t.rvs(df=df, loc=location, scale=scale, size=(randomSamples,sampleSize))      
+        samples = sp.stats.t.rvs(df=df, loc=location, scale=scale, size=(randomSamples,sampleSize))  
+        del df, location, scale, randomSamples, sampleSize    
 
     return var, std, p90p10range, meanabsdevs, medianabsdevs, iqr, samples
 
